@@ -7,7 +7,7 @@
    <a href="https://taskping-104u.onrender.com" target="_blank">
     <img src="https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=render" alt="Live Demo"/>
   </a>
-   <a href="https://taskping-104u.onrender.com/TASKping_Presentation.html" target="_blank">
+   <a href="https://github.com/nomaantalib/TASKPing/blob/main/TASKping_Presentation.html" target="_blank">
     <img src="https://img.shields.io/badge/Presentation-Slides-orange?style=for-the-badge&logo=googleslides" alt="Presentation Slides"/>
   </a>
    <a href="https://nodejs.org/en">
