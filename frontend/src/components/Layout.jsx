@@ -34,9 +34,7 @@ const Layout = ({ children }) => {
       {/* Mobile Top Header */}
       <header className="md:hidden flex justify-between items-center bg-[#111827]/80 backdrop-blur-md px-4 py-3 border-b border-gray-800 sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-indigo-600 rounded-lg text-white">
-            <Sparkles className="w-5 h-5 animate-pulse" />
-          </div>
+          <img src="/logo.png" alt="TASKping Logo" className="w-8 h-8 rounded-lg object-cover shadow-md shadow-indigo-600/20" />
           <span className="text-xl font-bold tracking-tight text-white">TASKping</span>
         </div>
         <button 
@@ -56,9 +54,7 @@ const Layout = ({ children }) => {
         <div className="flex flex-col gap-8">
           {/* Logo */}
           <div className="hidden md:flex items-center gap-3 px-2">
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-600/30">
-              <Sparkles className="w-6 h-6 animate-pulse" />
-            </div>
+            <img src="/logo.png" alt="TASKping Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-indigo-600/20" />
             <div>
               <h1 className="text-xl font-bold tracking-tight text-white">TASKping</h1>
               <span className="text-xs text-indigo-400 font-semibold uppercase tracking-wider">TaskPilot AI</span>

@@ -46,10 +46,13 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, message: 'Invalid response from server' };
     } catch (err) {
-      return {
-        success: false,
-        message: err.response?.data?.message || 'Login failed. Please check credentials.'
-      };
+      let message = 'Login failed. Please check credentials.';
+      if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+        message = 'Cannot connect to the server. Please check if the backend API service is running.';
+      } else if (err.response?.data?.message) {
+        message = err.response.data.message;
+      }
+      return { success: false, message };
     }
   };
 
@@ -70,10 +73,13 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, message: 'Invalid response from server' };
     } catch (err) {
-      return {
-        success: false,
-        message: err.response?.data?.message || 'Registration failed.'
-      };
+      let message = 'Registration failed.';
+      if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+        message = 'Cannot connect to the server. Please check if the backend API service is running.';
+      } else if (err.response?.data?.message) {
+        message = err.response.data.message;
+      }
+      return { success: false, message };
     }
   };
 
@@ -96,10 +102,13 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, message: 'Could not save settings' };
     } catch (err) {
-      return {
-        success: false,
-        message: err.response?.data?.message || 'Update failed.'
-      };
+      let message = 'Update failed.';
+      if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+        message = 'Cannot connect to the server. Please check if the backend API service is running.';
+      } else if (err.response?.data?.message) {
+        message = err.response.data.message;
+      }
+      return { success: false, message };
     }
   };
 

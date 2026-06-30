@@ -63,9 +63,7 @@ const Login = () => {
         
         {/* App Branding */}
         <div className="flex flex-col items-center mb-8">
-          <div className="p-3.5 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-600/30 mb-3.5">
-            <Sparkles className="w-7 h-7 animate-pulse" />
-          </div>
+          <img src="/logo.png" alt="TASKping Logo" className="w-16 h-16 rounded-2xl object-cover shadow-lg shadow-indigo-600/30 mb-3.5" />
           <h2 className="text-3xl font-extrabold text-white tracking-tight">TASKping</h2>
           <p className="text-sm text-gray-400 mt-1.5 font-medium">
             {isRegister ? 'Create an account to start planning' : 'Welcome back! Log in to your planner'}
