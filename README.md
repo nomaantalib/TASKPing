@@ -4,28 +4,25 @@
   <a href="https://blockseblock.com/hackathon_details/Vibe2Ship" target="_blank">
     <img src="https://img.shields.io/badge/Vibe2Ship-Hackathon--Submission-FF4500?style=for-the-badge&logo=rocket" alt="Vibe2Ship Submission"/>
   </a>
-   <a href="https://taskping-104u.onrender.com" target="_blank">
+  <img src="https://img.shields.io/badge/Stack-MERN-blue?style=for-the-badge&logo=mongodb" alt="MERN Stack"/>
+  <img src="https://img.shields.io/badge/AI-Gemini%20API-indigo?style=for-the-badge&logo=google-gemini" alt="Gemini Powered"/>
+  <a href="https://taskping-104u.onrender.com" target="_blank">
     <img src="https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=render" alt="Live Demo"/>
   </a>
-   <a href="https://nodejs.org/en">
-    <img src="https://img.shields.io/badge/Stack-MERN-blue?style=for-the-badge&logo=mongodb" alt="MERN Stack"/>
-   </a>
-  </a>
-   <a href="https://aistudio.google.com/api-keys">
-    <img src="https://img.shields.io/badge/AI-Gemini%20API-indigo?style=for-the-badge&logo=google-gemini" alt="Gemini Powered"/>
-   </a>
- 
- 
 </p>
 
 ---
+
+## 🔗 Deployed Application
+* **Live Deployment URL**: [https://taskping-104u.onrender.com](https://taskping-104u.onrender.com)
+* **Vibe2Ship Hackathon Submission Page**: [Vibe2Ship Details](https://blockseblock.com/hackathon_details/Vibe2Ship)
 
 ---
 
 ## 🚀 About the Project
 **TASKping** is a MERN-stack task scheduler and proactive reminder application built as a flagship submission for the **Vibe2Ship Hackathon**. It shifts the burden of task planning from the user to a server-side Gemini intelligence loop. 
 
-Unlike traditional static checklists, TASKping parses natural language (or speech dictation), ranks task urgency against effort, maps daily timelines to peak focus energy windows, and uses an in-app RAG vector embedding engine to limit API token usage.
+Unlike traditional static checklists, TASKping parses natural language (or speech dictation), ranks task urgency against effort, and maps daily timelines to peak focus energy windows. All task storage, search, and details are managed and queried directly within MongoDB.
 
 ---
 
@@ -47,7 +44,6 @@ graph TD
     subgraph "Backend API (Express.js)"
         S[API Gateway & Router]:::server
         M[JWT Auth Middleware]:::server
-        VS[Local Cosine Vector Search RAG]:::server
     end
 
     subgraph "Database (MongoDB)"
@@ -56,14 +52,12 @@ graph TD
 
     subgraph "AI Engine (Gemini API)"
         G[Gemini Key Rotation & Model Fallback]:::ai
-        EM[text-embedding-004 / embedding-001]:::ai
     end
 
     C -->|Requests / JWT| S
     WS -->|Voice text| C
     S -->|Queries / Inserts| D
-    S -->|Embed Query| G
-    S -->|Text context comparison| VS
+    S -->|Schedule & Nudge Requests| G
     G -->|Rotates keys & fallback models| S
     CH -->|Urgency vs Effort data| C
 ```
@@ -78,7 +72,6 @@ sequenceDiagram
     actor User
     participant App as React UI (Speech API)
     participant API as Express API
-    participant RAG as Local Vector Store
     participant Gemini as Gemini Rotation Engine
     participant DB as MongoDB Atlas
 
@@ -86,16 +79,11 @@ sequenceDiagram
     App->>API: POST /api/tasks/nl-add { text }
     API->>Gemini: Parse Natural Language into Fields
     Gemini-->>API: { title, category, effort, deadline }
-    API->>Gemini: Request embedding vector for text
-    Gemini-->>API: Float vector array (dim: 768)
-    API->>DB: Save Task Document (including embedding)
+    API->>DB: Save Task Document (Title, Description, Category, Deadline, Effort)
     DB-->>API: Task Saved
     
-    Note over API,RAG: RAG Semantic Context Fetching
-    API->>DB: Fetch user tasks
-    API->>RAG: Find top 5 similar tasks using Cosine Similarity
-    RAG-->>API: Context tasks
-    API->>Gemini: Generate energy-aware Daily Schedule (context + preference)
+    API->>DB: Fetch user's pending tasks
+    API->>Gemini: Generate energy-aware Daily Schedule (tasks + energy window)
     Gemini-->>API: Hour blocks (09:00 - 18:00)
     API->>DB: Save daily Schedule blocks
     API-->>App: Display timeline & task bubble chart
@@ -111,7 +99,7 @@ sequenceDiagram
 - ⚡ **Energy-Aware Scheduling**: Dynamically schedules heavy-effort tasks during your peak energy window (Morning, Afternoon, or Evening Focus).
 - 🎙️ **Speech-to-Text Input**: Dictate tasks directly using browser-native `SpeechRecognition` API.
 - 📉 **Priority Score Visualization**: Plots pending tasks on an Urgency vs. Effort grid using a responsive Recharts scatter-bubble layout.
-- 🧠 **Local JavaScript Vector RAG**: Generates embeddings using Google's models and filters relevant tasks locally, minimizing LLM request tokens.
+- 🧠 **MongoDB Native Queries**: Perform standard, efficient database searches on task titles and descriptions using MongoDB regex filters, ensuring no external embeddings cost.
 - 🚨 **Auto-Reprioritization**: Automatically detects overdue tasks on dashboard load and updates focus priorities.
 
 ---

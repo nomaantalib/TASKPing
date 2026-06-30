@@ -51,10 +51,6 @@ const TaskSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  embedding: {
-    type: [Number],
-    default: []
-  },
   completedAt: {
     type: Date
   },

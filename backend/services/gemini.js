@@ -86,36 +86,6 @@ const generateText = async (userKey, systemInstruction, promptText) => {
   });
 };
 
-/**
- * Get embedding vector (768 numbers) for text using text-embedding-004 or embedding-001
- */
-const getEmbedding = async (text, userKey) => {
-  if (!text || text.trim() === '') return [];
-
-  const keys = await getClientWithKeyRotation(userKey);
-  const embeddingModels = ['text-embedding-004', 'embedding-001'];
-  let lastError = null;
-
-  for (const key of keys) {
-    for (const modelName of embeddingModels) {
-      try {
-        const genAI = new GoogleGenerativeAI(key);
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.embedContent(text);
-        if (result && result.embedding && result.embedding.values) {
-          return result.embedding.values;
-        }
-      } catch (err) {
-        console.warn(
-          `Embedding failed with key suffix ...${key.slice(-6)} using model ${modelName}: ${err.message}`
-        );
-        lastError = err;
-      }
-    }
-  }
-  console.error(`All embedding attempts failed: ${lastError ? lastError.message : 'Unknown'}`);
-  return [];
-};
 
 /**
  * Parse Natural Language task text into structured task fields
@@ -243,7 +213,6 @@ Briefly summarize today's priorities based on the pending tasks, and comment on 
 };
 
 module.exports = {
-  getEmbedding,
   parseNLTask,
   prioritizeTasks,
   generateSchedule,

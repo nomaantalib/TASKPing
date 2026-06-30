@@ -158,7 +158,7 @@ const Settings = () => {
             </li>
             <li className="flex gap-2">
               <span className="text-indigo-400 font-bold">•</span>
-              <span>Embeddings (semantic task vectors) are stored inside your private task database. These are used locally in JS for instant, high-speed context search.</span>
+              <span>All task queries, updates, and details are stored and searched locally in your MongoDB database instance.</span>
             </li>
           </ul>
         </div>

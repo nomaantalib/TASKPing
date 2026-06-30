@@ -1,6 +1,5 @@
 const Task = require('../models/Task');
 const gemini = require('../services/gemini');
-const vectorStore = require('../services/vectorStore');
 
 /**
  * Get all tasks
@@ -8,15 +7,16 @@ const vectorStore = require('../services/vectorStore');
 exports.getTasks = async (req, res, next) => {
   try {
     const { q } = req.query;
-    const tasks = await Task.find({ userId: req.user._id }).sort({ deadline: 1 });
+    let query = { userId: req.user._id };
 
     if (q && q.trim() !== '') {
-      const userKey = req.user.geminiApiKey;
-      const queryEmbedding = await gemini.getEmbedding(q, userKey);
-      const filteredTasks = vectorStore.searchSimilarTasks(tasks, queryEmbedding, 5);
-      return res.json({ success: true, tasks: filteredTasks });
+      query.$or = [
+        { title: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } }
+      ];
     }
 
+    const tasks = await Task.find(query).sort({ deadline: 1 });
     res.json({ success: true, tasks });
   } catch (error) {
     next(error);
@@ -34,10 +34,6 @@ exports.createTask = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please provide a title and deadline' });
     }
 
-    const userKey = req.user.geminiApiKey;
-    const taskText = `${title} ${description || ''}`;
-    const embedding = await gemini.getEmbedding(taskText, userKey);
-
     const task = await Task.create({
       userId: req.user._id,
       title,
@@ -45,8 +41,7 @@ exports.createTask = async (req, res, next) => {
       deadline,
       estimatedEffort: estimatedEffort || 1,
       category: category || 'Work',
-      isRecurring: isRecurring || false,
-      embedding
+      isRecurring: isRecurring || false
     });
 
     res.status(201).json({ success: true, task });
@@ -68,17 +63,13 @@ exports.createTaskNL = async (req, res, next) => {
     const userKey = req.user.geminiApiKey;
     const parsedFields = await gemini.parseNLTask(text, userKey);
 
-    const taskText = `${parsedFields.title} ${parsedFields.description || ''}`;
-    const embedding = await gemini.getEmbedding(taskText, userKey);
-
     const task = await Task.create({
       userId: req.user._id,
       title: parsedFields.title,
       description: parsedFields.description,
       deadline: new Date(parsedFields.deadline),
       estimatedEffort: parsedFields.estimatedEffort || 1,
-      category: parsedFields.category || 'Work',
-      embedding
+      category: parsedFields.category || 'Work'
     });
 
     res.status(201).json({ success: true, task });
@@ -99,13 +90,7 @@ exports.updateTask = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
 
-    const userKey = req.user.geminiApiKey;
 
-    if (title !== undefined || description !== undefined) {
-      const updatedTitle = title !== undefined ? title : task.title;
-      const updatedDesc = description !== undefined ? description : task.description;
-      task.embedding = await gemini.getEmbedding(`${updatedTitle} ${updatedDesc}`, userKey);
-    }
 
     if (status !== undefined) {
       const oldStatus = task.status;
