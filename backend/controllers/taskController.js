@@ -64,8 +64,12 @@ exports.createTaskNL = async (req, res, next) => {
     const pendingTasks = await Task.find({ userId: req.user._id, status: 'pending' });
     const command = await gemini.parseNLCommand(text, pendingTasks, userKey);
 
+    if (!command || typeof command !== 'object') {
+      return res.status(400).json({ success: false, message: 'AI failed to process the command. Please specify a due date and time.' });
+    }
+
     if (command.type === 'error') {
-      return res.status(400).json({ success: false, message: command.message });
+      return res.status(400).json({ success: false, message: command.message || 'An error occurred parsing the command.' });
     }
 
     if (command.type === 'update') {

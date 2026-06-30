@@ -160,7 +160,7 @@ const DailyPlanner = () => {
               <div className="relative border-l-2 border-indigo-500/20 ml-3 pl-8 py-2 space-y-6">
                 {sortedBlocks.map((block, idx) => {
                   const task = block.taskId;
-                  if (!task) return null;
+                  if (!task || typeof task !== 'object') return null;
 
                   return (
                     <div key={block._id} className="relative group">

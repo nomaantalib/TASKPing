@@ -60,9 +60,10 @@ const ReminderManager = () => {
       schedule.blocks.forEach(block => {
         if (!block.taskId || !block.startTime) return;
 
-        const taskTitle = block.taskId.title;
-        const taskId = block.taskId._id || block.taskId;
-        const taskStatus = block.taskId.status;
+        const isTaskObj = typeof block.taskId === 'object' && block.taskId !== null;
+        const taskTitle = isTaskObj ? (block.taskId.title || 'Untitled Task') : 'Untitled Task';
+        const taskId = isTaskObj ? (block.taskId._id || block.taskId) : block.taskId;
+        const taskStatus = isTaskObj ? (block.taskId.status || 'pending') : 'pending';
 
         // Skip completed tasks
         if (taskStatus === 'completed') return;

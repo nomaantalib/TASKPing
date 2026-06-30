@@ -280,7 +280,7 @@ const Layout = ({ children }) => {
               <div className="relative border-l border-indigo-500/20 ml-2 pl-4 py-1 space-y-4">
                 {rightSchedule.map((block) => {
                   const t = block.taskId;
-                  if (!t) return null;
+                  if (!t || typeof t !== 'object') return null;
                   return (
                     <div key={block._id} className="relative group text-left">
                       {/* Timeline dot */}
