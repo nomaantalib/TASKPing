@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { parseNLTask } = require('./services/gemini');
+const { parseNLCommand } = require('./services/gemini');
 const mongoose = require('mongoose');
 
 const runTest = async () => {
@@ -18,11 +18,11 @@ const runTest = async () => {
   }
 
   // 2. Test Gemini NLP Parsing
-  console.log('\n[2/3] Testing Gemini NLP Task parsing...');
+  console.log('\n[2/3] Testing Gemini NLP Command parsing...');
   try {
     const text = 'Finish coding the dashboard layout by tomorrow at 4 PM, effort 2.5 hours, category Work';
     console.log(`Parsing input text: "${text}"`);
-    const parsed = await parseNLTask(text);
+    const parsed = await parseNLCommand(text, []);
     console.log('✅ Gemini parsed output:');
     console.log(JSON.stringify(parsed, null, 2));
   } catch (err) {

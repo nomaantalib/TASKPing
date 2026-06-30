@@ -1,7 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Fallback models in order of preference
-const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'];
 
 /**
  * Get available Gemini API keys in rotation order:
@@ -43,7 +43,15 @@ const runGenerativeAI = async (userKey, operation) => {
         console.warn(
           `Gemini API failed with key suffix ...${key.slice(-6)} using model ${modelName}: ${err.message}`
         );
-        lastError = err;
+        
+        let customErrorMsg = err.message;
+        if (err.message && err.message.includes('404')) {
+          customErrorMsg += ' (Note: A 404 "model not found" error is typically caused by an invalid, disabled, or restricted API key. Please verify or update your API key in Settings.)';
+        } else if (err.message && err.message.includes('429')) {
+          customErrorMsg += ' (Note: Free-tier rate limit exceeded. Please retry in a few seconds, or provide a custom API key in Settings.)';
+        }
+        
+        lastError = new Error(customErrorMsg);
       }
     }
   }
