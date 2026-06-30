@@ -11,6 +11,7 @@ import {
   Sparkles,
   User
 } from 'lucide-react';
+import ReminderManager from './ReminderManager';
 
 const Layout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
@@ -126,6 +127,9 @@ const Layout = ({ children }) => {
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
         />
       )}
+
+      {/* Background Proactive Reminders Daemon */}
+      <ReminderManager />
     </div>
   );
 };
