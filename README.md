@@ -27,7 +27,7 @@ TASKping is a premium MERN-stack task scheduler and reminder application that in
 Create `backend/.env` with the following variables:
 ```env
 PORT=5000
-MONGO_URI=mongodb+srv://TASKping:Cba4321@taskping.sq2bk1k.mongodb.net/
+MONGO_URI=your_mongodb_connection_uri
 JWT_SECRET=TASKPING_2026_JWT_SUPER_SECRET_KEY
 GEMINI_KEY_1=your_first_gemini_api_key
 GEMINI_KEY_2=your_second_gemini_api_key
@@ -77,7 +77,7 @@ gcloud run deploy taskping-backend \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars="MONGO_URI=mongodb+srv://TASKping:Cba4321@taskping.sq2bk1k.mongodb.net/,JWT_SECRET=TASKPING_2026_JWT_SUPER_SECRET_KEY,GEMINI_KEY_1=your_first_gemini_api_key,GEMINI_KEY_2=your_second_gemini_api_key"
+  --set-env-vars="MONGO_URI=your_mongodb_connection_uri,JWT_SECRET=TASKPING_2026_JWT_SUPER_SECRET_KEY,GEMINI_KEY_1=your_first_gemini_api_key,GEMINI_KEY_2=your_second_gemini_api_key"
 ```
 *Note the deployed URL returned by Cloud Run (e.g. `https://taskping-backend-xxxxxx.a.run.app`).*
 

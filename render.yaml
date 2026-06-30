@@ -10,7 +10,7 @@ services:
       - key: PORT
         value: 10000
       - key: MONGO_URI
-        value: mongodb+srv://TASKping:Cba4321@taskping.sq2bk1k.mongodb.net/
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: GEMINI_KEY_1
