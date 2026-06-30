@@ -479,7 +479,7 @@ const Dashboard = () => {
 
                           <span className="flex items-center gap-1 font-semibold">
                             <Calendar className="w-3 h-3 text-indigo-400" />
-                            Due {new Date(task.deadline).toLocaleDateString()}
+                            Due {new Date(task.deadline).toLocaleDateString()} at {new Date(task.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
 
                           {task.priorityScore > 0 && !isCompleted && (

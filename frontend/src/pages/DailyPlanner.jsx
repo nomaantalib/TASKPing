@@ -188,9 +188,10 @@ const DailyPlanner = () => {
                           <p className="text-xs text-gray-400 mt-1 line-clamp-2 leading-relaxed">{task.description}</p>
                         )}
 
-                        <div className="flex gap-4 items-center mt-3 pt-3 border-t border-gray-800/40 text-[11px] text-gray-500">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1.5 items-center mt-3 pt-3 border-t border-gray-800/40 text-[11px] text-gray-500">
                           <span>Effort: <strong className="text-gray-300">{task.estimatedEffort}h</strong></span>
                           <span>Priority Score: <strong className="text-gray-300">{task.priorityScore || 'N/A'}/10</strong></span>
+                          <span>Due: <strong className="text-gray-300">{new Date(task.deadline).toLocaleDateString()} at {new Date(task.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
                         </div>
                       </div>
 
