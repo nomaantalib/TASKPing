@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../utils/api';
 import {
   ScatterChart,
   Scatter,
@@ -12,37 +13,92 @@ import {
 } from 'recharts';
 
 const TaskChart = ({ tasks }) => {
+  const [schedule, setSchedule] = useState(null);
   const pendingTasks = tasks.filter(t => t.status === 'pending');
+
+  useEffect(() => {
+    const fetchTodaySchedule = async () => {
+      try {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const date = String(d.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${date}`;
+        
+        const res = await api.get(`/schedule?date=${todayStr}`);
+        if (res.data.success && res.data.schedule) {
+          setSchedule(res.data.schedule);
+        }
+      } catch (err) {
+        console.error('Failed to load schedule for TaskChart', err);
+      }
+    };
+    fetchTodaySchedule();
+  }, [tasks]);
 
   const chartData = pendingTasks.map(task => {
     const now = new Date();
-    const deadlineDate = new Date(task.deadline);
-    const diffTime = deadlineDate.getTime() - now.getTime();
-    const diffHours = diffTime / (1000 * 60 * 60);
+    const currentTimestamp = now.getTime();
     
+    // Check if this task is scheduled on today's timeline
+    let scheduledBlock = null;
+    if (schedule && schedule.blocks) {
+      scheduledBlock = schedule.blocks.find(block => {
+        const blockTaskId = block.taskId?._id || block.taskId;
+        return blockTaskId?.toString() === task._id?.toString();
+      });
+    }
+
+    let diffHours = 0;
+    let isScheduledToday = false;
+
+    if (scheduledBlock && scheduledBlock.startTime) {
+      // Calculate difference relative to assigned start time today
+      const [hours, minutes] = scheduledBlock.startTime.split(':').map(Number);
+      const blockTime = new Date();
+      blockTime.setHours(hours, minutes, 0, 0);
+      
+      const diffMs = blockTime.getTime() - currentTimestamp;
+      diffHours = diffMs / (1000 * 60 * 60);
+      isScheduledToday = true;
+    } else {
+      // Fall back to deadline difference
+      const deadlineDate = new Date(task.deadline);
+      const diffTime = deadlineDate.getTime() - currentTimestamp;
+      diffHours = diffTime / (1000 * 60 * 60);
+    }
+
     let urgency = 1;
     if (diffHours <= 0) {
-      urgency = 10; // Overdue
-    } else if (diffHours <= 2) {
-      urgency = 9.8; // Due within 2 hours
+      urgency = 10; // Overdue / In Progress
+    } else if (diffHours <= 0.16) {
+      urgency = 9.9; // Due within 10 minutes
+    } else if (diffHours <= 1) {
+      // Scales linearly from 9.8 down to 9.5 based on remaining fraction of the hour
+      urgency = 9.8 - (diffHours * 0.3);
+    } else if (diffHours <= 5) {
+      // Scales linearly from 9.5 down to 8.0 for 2 to 5 hours remaining
+      urgency = 9.5 - ((diffHours - 1) / 4) * 1.5;
     } else if (diffHours <= 24) {
-      // Scales linearly from 9.5 down to 8.0 based on hours remaining today
-      urgency = 9.5 - (diffHours / 24) * 1.5;
+      // Scales linearly from 8.0 down to 5.0 for rest of the day
+      urgency = 8.0 - ((diffHours - 5) / 19) * 3.0;
     } else if (diffHours <= 72) {
-      // Scales linearly from 8.0 down to 5.0 for tasks due in 1 to 3 days
-      urgency = 8.0 - ((diffHours - 24) / 48) * 3.0;
+      // Due in 1 to 3 days
+      urgency = 5.0 - ((diffHours - 24) / 48) * 2.0;
     } else {
-      // Scales from 5.0 down to 1.0 for tasks due in 3 to 10 days, capping beyond 10 days
-      urgency = Math.max(1, 5.0 - ((diffHours - 72) / (7 * 24)) * 4.0);
+      // Due in 3+ days
+      urgency = Math.max(1, 3.0 - ((diffHours - 72) / (7 * 24)) * 2.0);
     }
 
     return {
       id: task._id,
       name: task.title,
-      urgency: Math.round(urgency * 100) / 100, // Round to 2 decimals for precision
+      urgency: Math.round(urgency * 100) / 100, // Round to 2 decimals
       effort: task.estimatedEffort,
       priority: task.priorityScore || 1,
-      category: task.category
+      category: task.category,
+      isScheduledToday,
+      startTime: scheduledBlock?.startTime
     };
   });
 
@@ -55,7 +111,11 @@ const TaskChart = ({ tasks }) => {
           <p className="font-bold text-white mb-1.5 text-sm">{data.name}</p>
           <div className="space-y-1 text-gray-300">
             <p><span className="text-indigo-400 font-medium">Category:</span> {data.category}</p>
-            <p><span className="text-amber-400 font-medium">Urgency (1-10):</span> {data.urgency}</p>
+            <p>
+              <span className="text-pink-400 font-medium">Schedule:</span>{' '}
+              {data.isScheduledToday ? `Today at ${data.startTime}` : 'Not scheduled today'}
+            </p>
+            <p><span className="text-amber-400 font-medium">Urgency Score:</span> {data.urgency}</p>
             <p><span className="text-emerald-400 font-medium">Estimated Effort:</span> {data.effort}h</p>
             <p className="mt-2 pt-1 border-t border-gray-800 text-white font-semibold">
               AI Priority Tier: <span className={

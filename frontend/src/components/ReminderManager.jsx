@@ -5,7 +5,7 @@ const ReminderManager = () => {
   const [schedule, setSchedule] = useState(null);
 
   useEffect(() => {
-    // Request notification permission from browser on mount
+    // Request permission from the browser
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
@@ -17,6 +17,7 @@ const ReminderManager = () => {
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const date = String(d.getDate()).padStart(2, '0');
         const todayStr = `${year}-${month}-${date}`;
+        
         const res = await api.get(`/schedule?date=${todayStr}`);
         if (res.data.success && res.data.schedule) {
           setSchedule(res.data.schedule);
@@ -27,8 +28,24 @@ const ReminderManager = () => {
     };
 
     fetchTodaySchedule();
-    // Re-fetch today's schedule blocks every 10 minutes to reflect changes
-    const fetchInterval = setInterval(fetchTodaySchedule, 10 * 60 * 1000);
+    // Re-fetch today's schedule every 5 minutes to catch modifications
+    const fetchInterval = setInterval(fetchTodaySchedule, 5 * 60 * 1000);
+
+    // Garbage collect outdated reminder timestamps older than 24 hours
+    try {
+      const keys = Object.keys(localStorage);
+      const now = Date.now();
+      keys.forEach(k => {
+        if (k.startsWith('taskping_last_remind_')) {
+          const timestamp = Number(localStorage.getItem(k));
+          if (now - timestamp > 24 * 60 * 60 * 1000) {
+            localStorage.removeItem(k);
+          }
+        }
+      });
+    } catch (e) {
+      console.error('Failed to clean up localStorage keys', e);
+    }
 
     return () => clearInterval(fetchInterval);
   }, []);
@@ -36,17 +53,19 @@ const ReminderManager = () => {
   useEffect(() => {
     if (!schedule || !schedule.blocks || schedule.blocks.length === 0) return;
 
-    const sentKey = 'taskping_sent_reminders';
-    let sentList = JSON.parse(localStorage.getItem(sentKey) || '[]');
-
     const checkReminders = () => {
       const now = new Date();
-      
+      const currentTimestamp = now.getTime();
+
       schedule.blocks.forEach(block => {
         if (!block.taskId || !block.startTime) return;
-        
+
         const taskTitle = block.taskId.title;
         const taskId = block.taskId._id || block.taskId;
+        const taskStatus = block.taskId.status;
+
+        // Skip completed tasks
+        if (taskStatus === 'completed') return;
 
         // Parse schedule start time (HH:MM)
         const [hours, minutes] = block.startTime.split(':').map(Number);
@@ -54,67 +73,68 @@ const ReminderManager = () => {
         blockTime.setHours(hours, minutes, 0, 0);
 
         // Difference in minutes
-        const diffMs = blockTime.getTime() - now.getTime();
+        const diffMs = blockTime.getTime() - currentTimestamp;
         const diffMinutes = Math.round(diffMs / 60000);
 
-        // Skip completed or past tasks
-        if (block.taskId.status === 'completed' || diffMinutes <= 0) return;
+        // Stop notifying if a task is overdue by more than 3 hours
+        if (diffMinutes < -180) return;
 
-        // Trigger helper
-        const triggerNotification = (threshold, title, body) => {
-          const notificationId = `${taskId}-${threshold}`;
-          if (sentList.includes(notificationId)) return;
+        let shouldNotify = false;
+        let notificationTitle = '';
+        let notificationBody = '';
+        let storageKey = '';
+        let intervalMs = 0;
 
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(title, {
-              body,
+        if (diffMinutes <= 10) {
+          // Imminent / Overdue / Due Now -> Notify every 2 minutes
+          shouldNotify = true;
+          intervalMs = 2 * 60 * 1000;
+          storageKey = `taskping_last_remind_${taskId}_imminent`;
+          notificationTitle = `🚨 URGENT: Start ${taskTitle}`;
+          notificationBody = diffMinutes <= 0 
+            ? `Scheduled for ${block.startTime} and still pending. Please begin immediately!`
+            : `Starts in ${diffMinutes} minutes! Get ready to begin.`;
+        } else if (diffMinutes <= 60) {
+          // Less than 1 hour remaining -> Notify every 20 minutes
+          shouldNotify = true;
+          intervalMs = 20 * 60 * 1000;
+          storageKey = `taskping_last_remind_${taskId}_1h`;
+          notificationTitle = `⏰ 20-Min Check: ${taskTitle}`;
+          notificationBody = `Reminder: "${taskTitle}" starts in ${diffMinutes} minutes. Wrap up your current activity.`;
+        } else if (diffMinutes <= 300) {
+          // 2 to 5 hours remaining -> Notify every 1 hour (60 minutes)
+          shouldNotify = true;
+          intervalMs = 60 * 60 * 1000;
+          storageKey = `taskping_last_remind_${taskId}_5h`;
+          const hoursLeft = Math.round(diffMinutes / 60 * 10) / 10;
+          notificationTitle = `📅 Upcoming: ${taskTitle}`;
+          notificationBody = `Schedule Notice: "${taskTitle}" starts in ${hoursLeft} hours.`;
+        }
+
+        if (shouldNotify && 'Notification' in window && Notification.permission === 'granted') {
+          const lastSentStr = localStorage.getItem(storageKey);
+          const lastSent = lastSentStr ? Number(lastSentStr) : 0;
+
+          if (currentTimestamp - lastSent >= intervalMs) {
+            new Notification(notificationTitle, {
+              body: notificationBody,
               icon: '/favicon.png',
-              tag: notificationId
+              tag: `${taskId}-${storageKey}`
             });
-            
-            // Persist notification ID to prevent duplicates
-            sentList.push(notificationId);
-            localStorage.setItem(sentKey, JSON.stringify(sentList));
+            localStorage.setItem(storageKey, String(currentTimestamp));
           }
-        };
-
-        // 1. Concerned Tone - 2 Hours Before (120 minutes)
-        if (diffMinutes === 120) {
-          triggerNotification(
-            120,
-            `📅 Task Coming Up: ${taskTitle}`,
-            `Just checking in. You have "${taskTitle}" scheduled in 2 hours. Are you ready to tackle it?`
-          );
-        }
-
-        // 2. Concerned Tone - 1 Hour Before (60 minutes)
-        if (diffMinutes === 60) {
-          triggerNotification(
-            60,
-            `⏰ 1 Hour Reminder: ${taskTitle}`,
-            `Friendly check-in: "${taskTitle}" starts in 1 hour. Make sure to wrap up your current work!`
-          );
-        }
-
-        // 3. Urgent Action Label - 30 Minutes Before (30 minutes)
-        if (diffMinutes === 30) {
-          triggerNotification(
-            30,
-            `🚨 URGENT ACTION: ${taskTitle} Starts Soon`,
-            `Action Required: "${taskTitle}" begins in 30 minutes. Clear your workspace and get ready!`
-          );
         }
       });
     };
 
-    // Run every 30 seconds
+    // Run check immediately and then every 15 seconds
     checkReminders();
-    const reminderInterval = setInterval(checkReminders, 30 * 1000);
+    const reminderInterval = setInterval(checkReminders, 15 * 1000);
 
     return () => clearInterval(reminderInterval);
   }, [schedule]);
 
-  return null; // Logic-only helper component
+  return null;
 };
 
 export default ReminderManager;
