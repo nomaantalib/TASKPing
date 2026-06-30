@@ -87,6 +87,7 @@ const Login = () => {
                 placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
                 className="w-full bg-[#1f2937]/40 border border-gray-850 hover:border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder-gray-600"
                 required
               />
@@ -100,6 +101,7 @@ const Login = () => {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               className="w-full bg-[#1f2937]/40 border border-gray-850 hover:border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder-gray-600"
               required
             />
@@ -113,6 +115,7 @@ const Login = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isRegister ? "new-password" : "current-password"}
                 className="w-full bg-[#1f2937]/40 border border-gray-850 hover:border-gray-700 focus:border-indigo-500 rounded-xl pl-4 pr-11 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder-gray-600"
                 required
               />
