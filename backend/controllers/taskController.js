@@ -34,6 +34,9 @@ exports.createTask = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please provide a title and deadline' });
     }
 
+    const userKey = req.user.geminiApiKey;
+    const embedding = await gemini.getEmbedding(`${title} ${description || ''}`, userKey);
+
     const task = await Task.create({
       userId: req.user._id,
       title,
@@ -41,7 +44,8 @@ exports.createTask = async (req, res, next) => {
       deadline,
       estimatedEffort: estimatedEffort || 1,
       category: category || 'Work',
-      isRecurring: isRecurring || false
+      isRecurring: isRecurring || false,
+      embedding
     });
 
     res.status(201).json({ success: true, task });
@@ -62,7 +66,10 @@ exports.createTaskNL = async (req, res, next) => {
 
     const userKey = req.user.geminiApiKey;
     const pendingTasks = await Task.find({ userId: req.user._id, status: 'pending' });
-    const command = await gemini.parseNLCommand(text, pendingTasks, userKey);
+    
+    // Efficiently use embeddings: retrieve ONLY top 5 relevant tasks to minimize API tokens
+    const relevantTasks = await gemini.getRelevantTasks(text, pendingTasks, userKey, 5);
+    const command = await gemini.parseNLCommand(text, relevantTasks, userKey);
 
     if (!command || typeof command !== 'object') {
       return res.status(400).json({ success: false, message: 'AI failed to process the command. Please specify a due date and time.' });
@@ -85,6 +92,10 @@ exports.createTaskNL = async (req, res, next) => {
       if (fields.estimatedEffort !== undefined) task.estimatedEffort = fields.estimatedEffort;
       if (fields.category !== undefined) task.category = fields.category;
 
+      if (fields.title !== undefined || fields.description !== undefined) {
+        task.embedding = await gemini.getEmbedding(`${task.title} ${task.description || ''}`, userKey);
+      }
+
       const updatedTask = await task.save();
       return res.json({ 
         success: true, 
@@ -96,13 +107,16 @@ exports.createTaskNL = async (req, res, next) => {
 
     // CREATE command
     const fields = command.data;
+    const embedding = await gemini.getEmbedding(`${fields.title} ${fields.description || ''}`, userKey);
+
     const task = await Task.create({
       userId: req.user._id,
       title: fields.title,
       description: fields.description,
       deadline: new Date(fields.deadline),
       estimatedEffort: fields.estimatedEffort || 1,
-      category: fields.category || 'Work'
+      category: fields.category || 'Work',
+      embedding
     });
 
     res.status(201).json({ 
@@ -128,8 +142,6 @@ exports.updateTask = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
 
-
-
     if (status !== undefined) {
       const oldStatus = task.status;
       task.status = status;
@@ -146,12 +158,24 @@ exports.updateTask = async (req, res, next) => {
       }
     }
 
-    if (title !== undefined) task.title = title;
-    if (description !== undefined) task.description = description;
+    let embeddingChanged = false;
+    if (title !== undefined && title !== task.title) {
+      task.title = title;
+      embeddingChanged = true;
+    }
+    if (description !== undefined && description !== task.description) {
+      task.description = description;
+      embeddingChanged = true;
+    }
     if (deadline !== undefined) task.deadline = deadline;
     if (estimatedEffort !== undefined) task.estimatedEffort = estimatedEffort;
     if (category !== undefined) task.category = category;
     if (isRecurring !== undefined) task.isRecurring = isRecurring;
+
+    if (embeddingChanged) {
+      const userKey = req.user.geminiApiKey;
+      task.embedding = await gemini.getEmbedding(`${task.title} ${task.description || ''}`, userKey);
+    }
 
     const updatedTask = await task.save();
     res.json({ success: true, task: updatedTask });

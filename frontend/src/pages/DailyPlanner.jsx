@@ -51,7 +51,11 @@ const DailyPlanner = () => {
       }
     } catch (err) {
       console.error('Error generating schedule:', err);
-      setErrorMsg(err.response?.data?.message || 'Could not generate schedule. Do you have pending tasks?');
+      const errMsg = err.response?.data?.message || err.message || '';
+      setErrorMsg(errMsg);
+      if (errMsg.includes('429') || errMsg.toLowerCase().includes('quota') || errMsg.toLowerCase().includes('rate limit')) {
+        alert("⚠️ Gemini API Quota Exceeded (Rate Limit 429). Please wait 30-60 seconds, or input your own custom API Key under Settings to bypass this limitation.");
+      }
     } finally {
       setGenerating(false);
     }

@@ -71,6 +71,17 @@ const Dashboard = () => {
     isRecurring: false
   });
 
+  // API error handler
+  const handleApiError = (err, defaultMsg) => {
+    console.error(defaultMsg, err);
+    const errMsg = err.response?.data?.message || err.message || '';
+    if (errMsg.includes('429') || errMsg.toLowerCase().includes('quota') || errMsg.toLowerCase().includes('rate limit')) {
+      alert("⚠️ Gemini API Quota Exceeded (Rate Limit 429). Please wait 30-60 seconds, or input your own custom API Key under Settings to bypass this limitation.");
+    } else {
+      alert(`⚠️ ${defaultMsg}: ${errMsg}`);
+    }
+  };
+
   // Load initial tasks
   const fetchTasks = async (query = '') => {
     setLoading(true);
@@ -102,6 +113,10 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error('Error fetching briefing:', err);
+      const errMsg = err.response?.data?.message || err.message || '';
+      if (errMsg.includes('429') || errMsg.toLowerCase().includes('quota') || errMsg.toLowerCase().includes('rate limit')) {
+        alert("⚠️ Gemini API Quota Exceeded (Rate Limit 429) while fetching your Morning Briefing. Please check Settings to configure a custom API Key.");
+      }
       setBriefing('Enjoy your day! Make sure to take breaks and log your completed tasks.');
     } finally {
       setBriefingLoading(false);
@@ -133,6 +148,10 @@ const Dashboard = () => {
         }
       } catch (err) {
         console.error('Failed to auto-reprioritize:', err);
+        const errMsg = err.response?.data?.message || err.message || '';
+        if (errMsg.includes('429') || errMsg.toLowerCase().includes('quota') || errMsg.toLowerCase().includes('rate limit')) {
+          console.warn("Gemini API Quota Exceeded during auto-reprioritization.");
+        }
       } finally {
         setReprioritizing(false);
       }
@@ -149,7 +168,7 @@ const Dashboard = () => {
         setShowReprioritizeBanner(true);
       }
     } catch (err) {
-      console.error('Failed to prioritize tasks:', err);
+      handleApiError(err, 'Failed to prioritize tasks');
     } finally {
       setReprioritizing(false);
     }
@@ -231,9 +250,7 @@ const Dashboard = () => {
         setEditingTask(null);
       }
     } catch (err) {
-      console.error('Error updating task:', err);
-      const errMsg = err.response?.data?.message || 'Failed to update task.';
-      alert(errMsg);
+      handleApiError(err, 'Failed to update task');
     } finally {
       setFormSubmitting(false);
     }
@@ -259,9 +276,7 @@ const Dashboard = () => {
         setNlText('');
       }
     } catch (err) {
-      console.error('Failed to parse NL input:', err);
-      const errMsg = err.response?.data?.message || 'AI parsing failed. Please specify a due date and time, or enter the task manually.';
-      alert(errMsg);
+      handleApiError(err, 'AI command failed');
     } finally {
       setParsingNL(false);
     }
@@ -292,7 +307,7 @@ const Dashboard = () => {
         });
       }
     } catch (err) {
-      console.error('Failed to create task:', err);
+      handleApiError(err, 'Failed to create task');
     } finally {
       setFormSubmitting(false);
     }

@@ -1,7 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Fallback models in order of preference
-const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'];
+// Fallback models in order of preference (using only verified supported models to avoid 404s)
+const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-2.5-pro', 'gemini-pro-latest'];
 
 /**
  * Get available Gemini API keys in rotation order:
@@ -107,13 +107,10 @@ const generateText = async (userKey, systemInstruction, promptText) => {
  * Parse Natural Language task text into structured task fields or commands
  */
 const parseNLCommand = async (text, pendingTasks, userKey) => {
+  // Use minimum tokens: Only send task ID and title for command matching
   const pendingTasksData = (pendingTasks || []).map(t => ({
     _id: t._id.toString(),
-    title: t.title,
-    description: t.description,
-    deadline: t.deadline,
-    estimatedEffort: t.estimatedEffort,
-    category: t.category
+    title: t.title
   }));
 
   const systemInstruction = `You are a task management command parser.
@@ -171,9 +168,9 @@ Pending tasks list: ${JSON.stringify(pendingTasksData)}`;
  */
 const prioritizeTasks = async (tasks, userKey) => {
   if (!tasks || tasks.length === 0) return [];
-
-  const systemInstruction = `You are an expert AI productivity assistant. Prioritize the user's tasks by balancing urgency (closeness of deadline), estimated effort, categories, and completion streaks.
-For each task, assign a priorityScore from 1 (lowest priority) to 10 (highest priority) and a brief 1-2 sentence aiReasoning explaining why this score was assigned.
+ 
+  const systemInstruction = `You are an expert AI productivity assistant. Prioritize the user's tasks by balancing urgency, estimated effort, and category.
+For each task, assign a priorityScore from 1 to 10 and a brief 1-sentence aiReasoning.
 Return ONLY a JSON array containing objects with the task database _id, priorityScore, and aiReasoning in this exact format:
 [
   {
@@ -182,16 +179,15 @@ Return ONLY a JSON array containing objects with the task database _id, priority
     "aiReasoning": "Crucial task with a tight deadline that fits well into today's timeline."
   }
 ]`;
-
+ 
+  // Use minimum tokens: Omit descriptions to save tokens
   const tasksData = tasks.map(t => ({
     _id: t._id.toString(),
     title: t.title,
-    description: t.description,
     deadline: t.deadline,
     estimatedEffort: t.estimatedEffort,
     category: t.category,
-    isRecurring: t.isRecurring,
-    streakCount: t.streakCount
+    streakCount: t.streakCount || 0
   }));
 
   const promptText = `Prioritize these tasks: ${JSON.stringify(tasksData)}`;
@@ -269,10 +265,91 @@ Briefly summarize today's priorities based on the pending tasks, and comment on 
   return await generateText(userKey, systemInstruction, promptText);
 };
 
+/**
+ * Generate vector embedding for a given text
+ */
+const getEmbedding = async (text, userKey) => {
+  const keys = await getClientWithKeyRotation(userKey);
+  const embeddingModelsToTry = ['gemini-embedding-2', 'gemini-embedding-001'];
+  let lastError = null;
+
+  for (const key of keys) {
+    for (const modelName of embeddingModelsToTry) {
+      try {
+        const genAI = new GoogleGenerativeAI(key);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.embedContent(text);
+        if (result && result.embedding && result.embedding.values) {
+          return result.embedding.values;
+        }
+      } catch (err) {
+        console.warn(
+          `Gemini Embedding failed with key suffix ...${key.slice(-6)} using model ${modelName}: ${err.message}`
+        );
+        lastError = err;
+      }
+    }
+  }
+  console.error('All embedding attempts failed. Falling back to empty array.', lastError?.message);
+  return [];
+};
+
+/**
+ * Computes cosine similarity between two vectors
+ */
+const cosineSimilarity = (vecA, vecB) => {
+  if (!vecA || !vecB || vecA.length !== vecB.length || vecA.length === 0) return 0;
+  let dotProduct = 0.0;
+  let normA = 0.0;
+  let normB = 0.0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+};
+
+/**
+ * Find similar tasks based on cosine similarity of their titles/descriptions
+ */
+const getRelevantTasks = async (queryText, pendingTasks, userKey, limit = 5) => {
+  if (!pendingTasks || pendingTasks.length === 0) return [];
+  
+  // Generate query embedding
+  const queryEmbedding = await getEmbedding(queryText, userKey);
+  if (!queryEmbedding || queryEmbedding.length === 0) {
+    // Fallback: if embedding fails, return all tasks (up to limit)
+    return pendingTasks.slice(0, limit);
+  }
+
+  // Rank tasks by similarity
+  const ranked = pendingTasks.map(task => {
+    let similarity = 0;
+    if (task.embedding && task.embedding.length > 0) {
+      similarity = cosineSimilarity(queryEmbedding, task.embedding);
+    } else {
+      // Title matching fallback
+      const titleMatch = task.title.toLowerCase().includes(queryText.toLowerCase()) ? 0.5 : 0;
+      similarity = titleMatch;
+    }
+    return { task, similarity };
+  });
+
+  // Sort by similarity descending
+  ranked.sort((a, b) => b.similarity - a.similarity);
+  
+  // Return the top ones
+  return ranked.slice(0, limit).map(item => item.task);
+};
+
 module.exports = {
   parseNLCommand,
   prioritizeTasks,
   generateSchedule,
   generateNudge,
-  generateMorningBriefing
+  generateMorningBriefing,
+  getEmbedding,
+  getRelevantTasks
 };
