@@ -116,12 +116,28 @@ const ReminderManager = () => {
           const lastSent = lastSentStr ? Number(lastSentStr) : 0;
 
           if (currentTimestamp - lastSent >= intervalMs) {
-            new Notification(notificationTitle, {
-              body: notificationBody,
-              icon: '/favicon.png',
-              tag: `${taskId}-${storageKey}`
-            });
-            localStorage.setItem(storageKey, String(currentTimestamp));
+            try {
+              new Notification(notificationTitle, {
+                body: notificationBody,
+                icon: '/favicon.png',
+                tag: `${taskId}-${storageKey}`
+              });
+              localStorage.setItem(storageKey, String(currentTimestamp));
+            } catch (err) {
+              console.warn('Failed to trigger standard browser notification, trying Service Worker:', err);
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                  registration.showNotification(notificationTitle, {
+                    body: notificationBody,
+                    icon: '/favicon.png',
+                    tag: `${taskId}-${storageKey}`
+                  });
+                  localStorage.setItem(storageKey, String(currentTimestamp));
+                }).catch(swErr => {
+                  console.error('Service Worker notification fallback failed:', swErr);
+                });
+              }
+            }
           }
         }
       });
