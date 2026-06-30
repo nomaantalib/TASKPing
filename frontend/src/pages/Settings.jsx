@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Settings as SettingsIcon, ShieldCheck, Key, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Key, Zap, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
 
 const Settings = () => {
   const { user, updateSettings } = useContext(AuthContext);
@@ -116,9 +116,10 @@ const Settings = () => {
                   href="https://aistudio.google.com/api-keys" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline"
+                  className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline inline-flex items-center gap-1 group"
                 >
-                  Get a free key from Google AI Studio ↗
+                  Get a free key from Google AI Studio
+                  <ExternalLink className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
                 </a>
               </div>
               <input
