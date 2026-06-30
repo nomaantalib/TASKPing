@@ -1,127 +1,138 @@
-# TASKping (TaskPilot AI)
+# ⚡ TASKping (TaskPilot AI) ⚡
 
-TASKping is a premium MERN-stack task scheduler and reminder application that integrates the Gemini API to help users parse natural language inputs, prioritize tasks based on urgency and effort, schedule their day around peak energy windows, and receive proactive motivational reminders.
-
----
-
-## Technical Features
-
-1. **Robust Authentication**: Custom JWT session validation with bcrypt-hashed passwords.
-2. **Gemini API Key Rotation**: Automatically falls back between `GEMINI_KEY_1` and `GEMINI_KEY_2` on quota errors (status 503/429) or invalid configuration, prioritising a user's custom key if supplied in Settings.
-3. **Internal Model Fallback**: Tries `gemini-2.5-flash` first and automatically rolls back to `gemini-1.5-flash` if unavailable.
-4. **Lightweight Vector RAG Search**: Computes task embedding vectors on-create/on-update, using a local pure-JS cosine similarity engine to pull relevant task context and limit API token costs.
-5. **Speech Input Integration**: Captures voice via the browser's Web Speech API and feeds it to the Gemini NLP parser.
-6. **Task Priority Visualizer**: Interactive bubble chart mapping Task Urgency (deadline proximity) vs. Effort (hours), color-coded by AI priority scores.
-7. **Timeline Scheduler**: Creates hourly blocks between 09:00 and 18:00, scheduling high-focus items during the user's custom peak energy focus window.
+<p align="center">
+  <img src="https://img.shields.io/badge/Vibe2Ship-Hackathon--Submission-FF4500?style=for-the-badge&logo=rocket" alt="Vibe2Ship Submission"/>
+  <img src="https://img.shields.io/badge/Stack-MERN-blue?style=for-the-badge&logo=mongodb" alt="MERN Stack"/>
+  <img src="https://img.shields.io/badge/AI-Gemini%20API-indigo?style=for-the-badge&logo=google-gemini" alt="Gemini Powered"/>
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License"/>
+</p>
 
 ---
 
-## Local Development
+## 🚀 About the Project
+**TASKping** is a MERN-stack task scheduler and proactive reminder application built as a flagship submission for the **Vibe2Ship Hackathon**. It shifts the burden of task planning from the user to a server-side Gemini intelligence loop. 
 
-### 1. Prerequisites
-- Node.js (v18+)
-- MongoDB Atlas cluster (a connection URI is pre-configured in `.env`)
-- Gemini API key (pre-configured in `.env`)
+Unlike traditional static checklists, TASKping parses natural language (or speech dictation), ranks task urgency against effort, maps daily timelines to peak focus energy windows, and uses an in-app RAG vector embedding engine to limit API token usage.
 
-### 2. Environment Variables (`backend/.env`)
-Create `backend/.env` with the following variables:
+---
+
+## 🗺️ System Architecture
+
+```mermaid
+graph TD
+    classDef client fill:#4f46e5,stroke:#312e81,stroke-width:2px,color:#ffffff;
+    classDef server fill:#1e1b4b,stroke:#4338ca,stroke-width:2px,color:#ffffff;
+    classDef db fill:#064e3b,stroke:#065f46,stroke-width:2px,color:#ffffff;
+    classDef ai fill:#78350f,stroke:#92400e,stroke-width:2px,color:#ffffff;
+
+    subgraph "Frontend Client (React)"
+        C[Dashboard & Planner UI]:::client
+        WS[SpeechRecognition API]:::client
+        CH[Recharts Bubble Graph]:::client
+    end
+
+    subgraph "Backend API (Express.js)"
+        S[API Gateway & Router]:::server
+        M[JWT Auth Middleware]:::server
+        VS[Local Cosine Vector Search RAG]:::server
+    end
+
+    subgraph "Database (MongoDB)"
+        D[(User, Task & Schedule Docs)]:::db
+    end
+
+    subgraph "AI Engine (Gemini API)"
+        G[Gemini Key Rotation & Model Fallback]:::ai
+        EM[text-embedding-004 / embedding-001]:::ai
+    end
+
+    C -->|Requests / JWT| S
+    WS -->|Voice text| C
+    S -->|Queries / Inserts| D
+    S -->|Embed Query| G
+    S -->|Text context comparison| VS
+    G -->|Rotates keys & fallback models| S
+    CH -->|Urgency vs Effort data| C
+```
+
+---
+
+## 🔄 AI Scheduling & Input Workflow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant App as React UI (Speech API)
+    participant API as Express API
+    participant RAG as Local Vector Store
+    participant Gemini as Gemini Rotation Engine
+    participant DB as MongoDB Atlas
+
+    User->>App: Input task via Voice/Text ("Submit report tomorrow")
+    App->>API: POST /api/tasks/nl-add { text }
+    API->>Gemini: Parse Natural Language into Fields
+    Gemini-->>API: { title, category, effort, deadline }
+    API->>Gemini: Request embedding vector for text
+    Gemini-->>API: Float vector array (dim: 768)
+    API->>DB: Save Task Document (including embedding)
+    DB-->>API: Task Saved
+    
+    Note over API,RAG: RAG Semantic Context Fetching
+    API->>DB: Fetch user tasks
+    API->>RAG: Find top 5 similar tasks using Cosine Similarity
+    RAG-->>API: Context tasks
+    API->>Gemini: Generate energy-aware Daily Schedule (context + preference)
+    Gemini-->>API: Hour blocks (09:00 - 18:00)
+    API->>DB: Save daily Schedule blocks
+    API-->>App: Display timeline & task bubble chart
+    App-->>User: Show today's optimized schedule
+```
+
+---
+
+## ✨ Features
+
+- 👤 **Custom JWT Authentication**: Secure user login and registration with hashed password cookies.
+- 🔄 **Gemini API Key Rotation**: Automatically toggles between `GEMINI_KEY_1` and `GEMINI_KEY_2` when encountering quota limits (503 Service Unavailable or 429 Too Many Requests), or prioritizes the user's custom API key.
+- ⚡ **Energy-Aware Scheduling**: Dynamically schedules heavy-effort tasks during your peak energy window (Morning, Afternoon, or Evening Focus).
+- 🎙️ **Speech-to-Text Input**: Dictate tasks directly using browser-native `SpeechRecognition` API.
+- 📉 **Priority Score Visualization**: Plots pending tasks on an Urgency vs. Effort grid using a responsive Recharts scatter-bubble layout.
+- 🧠 **Local JavaScript Vector RAG**: Generates embeddings using Google's models and filters relevant tasks locally, minimizing LLM request tokens.
+- 🚨 **Auto-Reprioritization**: Automatically detects overdue tasks on dashboard load and updates focus priorities.
+
+---
+
+## 🛠️ Local Development
+
+### 1. Configure Environments
+Create `backend/.env` in the backend folder:
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_uri
-JWT_SECRET=TASKPING_2026_JWT_SUPER_SECRET_KEY
-GEMINI_KEY_1=your_first_gemini_api_key
-GEMINI_KEY_2=your_second_gemini_api_key
+JWT_SECRET=your_jwt_signing_secret
+GEMINI_KEY_1=your_primary_gemini_api_key
+GEMINI_KEY_2=your_fallback_gemini_api_key
 ```
 
-### 3. Installation
-Install root, backend, and frontend dependencies:
+### 2. Install dependencies
 ```bash
 npm run install-all
 ```
 
-### 4. Running the App
-Run both servers concurrently (Backend on port `5000`, Frontend on port `5173`):
+### 3. Run Development Servers
 ```bash
 npm run dev
 ```
 
-### 5. Running Integration Tests
-Test backend database connectivity and Gemini parsing rotation:
-```bash
-cd backend
-node test-gemini.js
-```
-
 ---
 
-## Google Cloud Run Deployment
+## 🚀 Unified Render Deployment
 
-Both backend and frontend are pre-configured with Dockerfiles for serverless deployment on Google Cloud Run.
+TASKping is fully optimized for **Render Blueprints**, bundling the backend API and static frontend assets under a single unified web service.
 
-### Step 1: Set Google Cloud Project
-Ensure you are authenticated and target your GCP project:
-```bash
-gcloud auth login
-gcloud config set project YOUR_PROJECT_ID
-```
-
-### Step 2: Deploy Backend API
-Build the backend container image using Cloud Build and deploy to Cloud Run:
-```bash
-# Submit build to container registry
-gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/taskping-backend ./backend
-
-# Deploy backend to Cloud Run
-gcloud run deploy taskping-backend \
-  --image gcr.io/YOUR_PROJECT_ID/taskping-backend \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars="MONGO_URI=your_mongodb_connection_uri,JWT_SECRET=TASKPING_2026_JWT_SUPER_SECRET_KEY,GEMINI_KEY_1=your_first_gemini_api_key,GEMINI_KEY_2=your_second_gemini_api_key"
-```
-*Note the deployed URL returned by Cloud Run (e.g. `https://taskping-backend-xxxxxx.a.run.app`).*
-
-### Step 3: Deploy Frontend client
-Create a production build of the frontend targeting your deployed backend API URL, build the container, and deploy:
-```bash
-# Add backend URL to frontend configuration build environment
-echo "VITE_API_URL=https://taskping-backend-xxxxxx.a.run.app/api" > ./frontend/.env
-
-# Submit build to container registry
-gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/taskping-frontend ./frontend
-
-# Deploy frontend to Cloud Run
-gcloud run deploy taskping-frontend \
-  --image gcr.io/YOUR_PROJECT_ID/taskping-frontend \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated
-```
-*Your TASKping app is now live at the URL returned by the frontend deployment!*
-
----
-
-## Render Deployment (Unified Web Service)
-
-We have configured a `render.yaml` Blueprint file at the root. You can deploy this entire monorepo stack on Render as a single web service (fitting perfectly in their Free Tier) by following these instructions:
-
-### Step 1: Push your code to GitHub
-Initialize git and push the files to your repository:
-```bash
-git init
-git add .
-git commit -m "Initialize TASKping MERN monorepo"
-git remote add origin https://github.com/nomaantalib/TASKPing
-git branch -M main
-git push -u origin main
-```
-
-### Step 2: Deploy Blueprint on Render
-1. Go to your [Render Dashboard](https://dashboard.render.com).
-2. Click **New +** at the top right and select **Blueprint**.
-3. Connect your GitHub repository (`nomaantalib/TASKPing`).
-4. Render will read the `render.yaml` file, register your service, and automatically load your connection strings (`MONGO_URI`, `GEMINI_KEY_1`, `GEMINI_KEY_2`) and generate a secure `JWT_SECRET`.
-5. Click **Approve** to build and start.
-
-Once compiled, your backend will start, bundle and serve the frontend statically, exposing the app under a single Render URL (e.g. `https://taskping.onrender.com`).
-
+1. Push your code to your GitHub fork (`nomaantalib/TASKPing`).
+2. Go to your [Render Dashboard](https://dashboard.render.com).
+3. Click **New +** ➔ **Blueprint**.
+4. Link your repository.
+5. Render will read [render.yaml](file:///c:/Users/mohdn/OneDrive/Desktop/TASLping/render.yaml) and automatically deploy your application on their Free Tier, prompting you for credentials during setup.
