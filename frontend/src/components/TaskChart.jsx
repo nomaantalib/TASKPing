@@ -15,26 +15,31 @@ const TaskChart = ({ tasks }) => {
   const pendingTasks = tasks.filter(t => t.status === 'pending');
 
   const chartData = pendingTasks.map(task => {
-    // Calculate Urgency score (1 to 10). Closer to deadline = higher urgency
     const now = new Date();
     const deadlineDate = new Date(task.deadline);
     const diffTime = deadlineDate.getTime() - now.getTime();
-    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+    const diffHours = diffTime / (1000 * 60 * 60);
     
     let urgency = 1;
-    if (diffDays <= 0) {
-      urgency = 10; // Overdue or due now
-    } else if (diffDays <= 1) {
-      urgency = 9.5; // Due within a day
+    if (diffHours <= 0) {
+      urgency = 10; // Overdue
+    } else if (diffHours <= 2) {
+      urgency = 9.8; // Due within 2 hours
+    } else if (diffHours <= 24) {
+      // Scales linearly from 9.5 down to 8.0 based on hours remaining today
+      urgency = 9.5 - (diffHours / 24) * 1.5;
+    } else if (diffHours <= 72) {
+      // Scales linearly from 8.0 down to 5.0 for tasks due in 1 to 3 days
+      urgency = 8.0 - ((diffHours - 24) / 48) * 3.0;
     } else {
-      // Scale from 1 to 9 based on days remaining (cap at 10 days)
-      urgency = Math.max(1, Math.min(9, 10 - diffDays));
+      // Scales from 5.0 down to 1.0 for tasks due in 3 to 10 days, capping beyond 10 days
+      urgency = Math.max(1, 5.0 - ((diffHours - 72) / (7 * 24)) * 4.0);
     }
 
     return {
       id: task._id,
       name: task.title,
-      urgency: Math.round(urgency * 10) / 10, // Round to 1 decimal
+      urgency: Math.round(urgency * 100) / 100, // Round to 2 decimals for precision
       effort: task.estimatedEffort,
       priority: task.priorityScore || 1,
       category: task.category

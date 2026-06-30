@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // Base URL points to relative /api (proxied in dev, direct in production) or env var
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
+  ? '/api'
+  : (import.meta.env.VITE_API_URL || '/api');
 
 const api = axios.create({
   baseURL: API_BASE_URL,

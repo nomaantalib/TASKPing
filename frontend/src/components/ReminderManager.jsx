@@ -12,7 +12,11 @@ const ReminderManager = () => {
 
     const fetchTodaySchedule = async () => {
       try {
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const date = String(d.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${date}`;
         const res = await api.get(`/schedule?date=${todayStr}`);
         if (res.data.success && res.data.schedule) {
           setSchedule(res.data.schedule);
