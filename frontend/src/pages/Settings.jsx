@@ -111,7 +111,7 @@ const Settings = () => {
             
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Gemini API Key</label>
+                <label htmlFor="geminiApiKey" className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Gemini API Key</label>
                 <a 
                   href="https://aistudio.google.com/api-keys" 
                   target="_blank" 
@@ -123,6 +123,8 @@ const Settings = () => {
                 </a>
               </div>
               <input
+                id="geminiApiKey"
+                name="geminiApiKey"
                 type="password"
                 placeholder="AIzaSy..."
                 value={geminiApiKey}

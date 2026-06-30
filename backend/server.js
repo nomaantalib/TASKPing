@@ -8,6 +8,18 @@ const app = express();
 // Connect Database
 connectDB();
 
+// Security Headers & Policy Middleware
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'none';");
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.removeHeader('X-XSS-Protection');
+  res.removeHeader('X-Frame-Options');
+  res.removeHeader('Expires');
+  next();
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());

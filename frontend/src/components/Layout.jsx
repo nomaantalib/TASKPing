@@ -39,7 +39,9 @@ const Layout = ({ children }) => {
         </div>
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800"
+          title="Toggle Menu"
+          aria-label="Toggle Menu"
+          className="p-1.5 text-gray-405 hover:text-white rounded-lg hover:bg-gray-800"
         >
           {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
