@@ -49,7 +49,7 @@ const Layout = ({ children }) => {
 
       {/* Sidebar Navigation */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-[#111827]/90 md:bg-[#111827]/50 backdrop-blur-lg border-r border-gray-800/80 p-5 flex flex-col justify-between transform transition-transform duration-300 ease-in-out
+        fixed inset-y-0 left-0 z-50 w-64 bg-[#111827]/90 md:bg-[#111827]/50 backdrop-blur-lg border-r border-gray-800/80 p-5 flex flex-col justify-between transform transition-transform duration-300 ease-in-out overflow-y-auto
         md:translate-x-0 md:static md:h-screen
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>

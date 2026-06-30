@@ -366,11 +366,11 @@ const Dashboard = () => {
       </div>
 
       {/* Natural Language parser Input */}
-      <form onSubmit={handleNLSubmit} className="bg-[#111827]/20 border border-gray-850 rounded-2xl p-4 flex gap-3 items-center backdrop-blur-sm">
-        <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/20">
-          <Sparkles className="w-5 h-5" />
-        </div>
-        <div className="flex-1 relative">
+      <form onSubmit={handleNLSubmit} className="bg-[#111827]/20 border border-gray-850 rounded-2xl p-4 flex flex-col md:flex-row gap-3 items-stretch md:items-center backdrop-blur-sm">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/20 flex-shrink-0">
+            <Sparkles className="w-5 h-5" />
+          </div>
           <input
             type="text"
             placeholder="Type a task: 'Submit report tomorrow at 2pm category Work effort 2h' or click Mic to speak..."
@@ -380,15 +380,17 @@ const Dashboard = () => {
             className="w-full bg-transparent text-sm text-white focus:outline-none placeholder-gray-550 pr-4"
           />
         </div>
-        <SpeechInput onTranscript={handleVoiceTranscript} disabled={parsingNL} />
-        
-        <button
-          type="submit"
-          disabled={parsingNL || !nlText.trim()}
-          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
-        >
-          {parsingNL ? 'Parsing...' : 'AI Parse'}
-        </button>
+        <div className="flex gap-2 justify-end items-center flex-shrink-0">
+          <SpeechInput onTranscript={handleVoiceTranscript} disabled={parsingNL} />
+          
+          <button
+            type="submit"
+            disabled={parsingNL || !nlText.trim()}
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
+          >
+            {parsingNL ? 'Parsing...' : 'AI Parse'}
+          </button>
+        </div>
       </form>
 
       {/* Main Grid: Tasks List & Priority Chart */}

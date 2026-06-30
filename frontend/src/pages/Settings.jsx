@@ -86,7 +86,7 @@ const Settings = () => {
                   type="button"
                   key={opt.id}
                   onClick={() => setEnergyWindow(opt.id)}
-                  className={`p-4 rounded-xl border text-left flex flex-col justify-between h-24 transition-all duration-200 ${
+                  className={`p-4 rounded-xl border text-left flex flex-col justify-between min-h-[6rem] h-auto transition-all duration-200 ${
                     energyWindow === opt.id
                       ? 'bg-indigo-600/10 border-indigo-500 ring-2 ring-indigo-500/20'
                       : 'bg-[#1e293b]/40 border-gray-800 hover:border-gray-700'
