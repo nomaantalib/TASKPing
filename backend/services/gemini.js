@@ -32,7 +32,7 @@ const getClientWithKeyRotation = async (userKey) => {
  */
 const runGenerativeAI = async (userKey, operation) => {
   const keys = await getClientWithKeyRotation(userKey);
-  let lastError = null;
+  const errors = [];
 
   for (const key of keys) {
     for (const modelName of modelsToTry) {
@@ -46,17 +46,25 @@ const runGenerativeAI = async (userKey, operation) => {
         
         let customErrorMsg = err.message;
         if (err.message && err.message.includes('404')) {
-          customErrorMsg += ' (Note: A 404 "model not found" error is typically caused by an invalid, disabled, or restricted API key. Please verify or update your API key in Settings.)';
+          customErrorMsg += ' (Note: A 404 "model not found" error typically means this model is disabled/unsupported on this API key. Verify your key configuration in settings.)';
         } else if (err.message && err.message.includes('429')) {
-          customErrorMsg += ' (Note: Free-tier rate limit exceeded. Please retry in a few seconds, or provide a custom API key in Settings.)';
+          customErrorMsg += ' (Note: Free-tier rate limit exceeded. Please wait a minute, or provide a custom API key in Settings.)';
         }
         
-        lastError = new Error(customErrorMsg);
+        errors.push({
+          model: modelName,
+          message: customErrorMsg,
+          isQuota: err.message && err.message.includes('429')
+        });
       }
     }
   }
 
-  throw new Error(`All Gemini API attempts failed. Details: ${lastError ? lastError.message : 'Unknown'}`);
+  // Prioritize reporting 429 quota exhaustion over 404 model mismatches
+  const quotaError = errors.find(e => e.isQuota);
+  const primaryError = quotaError || errors[errors.length - 1] || { message: 'Unknown error', model: 'N/A' };
+
+  throw new Error(`All Gemini API attempts failed. Details: [Model: ${primaryError.model}] ${primaryError.message}`);
 };
 
 /**
