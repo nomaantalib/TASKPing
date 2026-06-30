@@ -4,11 +4,18 @@
   <a href="https://blockseblock.com/hackathon_details/Vibe2Ship" target="_blank">
     <img src="https://img.shields.io/badge/Vibe2Ship-Hackathon--Submission-FF4500?style=for-the-badge&logo=rocket" alt="Vibe2Ship Submission"/>
   </a>
-  <img src="https://img.shields.io/badge/Stack-MERN-blue?style=for-the-badge&logo=mongodb" alt="MERN Stack"/>
-  <img src="https://img.shields.io/badge/AI-Gemini%20API-indigo?style=for-the-badge&logo=google-gemini" alt="Gemini Powered"/>
-  <a href="https://taskping-104u.onrender.com" target="_blank">
+   <a href="https://taskping-104u.onrender.com" target="_blank">
     <img src="https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=render" alt="Live Demo"/>
   </a>
+   <a href="https://nodejs.org/en">
+    <img src="https://img.shields.io/badge/Stack-MERN-blue?style=for-the-badge&logo=mongodb" alt="MERN Stack"/>
+   </a>
+  </a>
+   <a href="https://aistudio.google.com/api-keys">
+    <img src="https://img.shields.io/badge/AI-Gemini%20API-indigo?style=for-the-badge&logo=google-gemini" alt="Gemini Powered"/>
+   </a>
+ 
+ 
 </p>
 
 ---
