@@ -13,10 +13,6 @@
 
 ---
 
-## 🔗 Deployed Application
-* **Live Deployment URL**: [https://taskping-104u.onrender.com](https://taskping-104u.onrender.com)
-* **Vibe2Ship Hackathon Submission Page**: [Vibe2Ship Details](https://blockseblock.com/hackathon_details/Vibe2Ship)
-
 ---
 
 ## 🚀 About the Project
