@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import { X } from 'lucide-react';
 import {
   ScatterChart,
   Scatter,
@@ -14,6 +15,7 @@ import {
 
 const TaskChart = ({ tasks }) => {
   const [schedule, setSchedule] = useState(null);
+  const [selectedPoint, setSelectedPoint] = useState(null);
   const pendingTasks = tasks.filter(t => t.status === 'pending');
 
   useEffect(() => {
@@ -93,6 +95,8 @@ const TaskChart = ({ tasks }) => {
     return {
       id: task._id,
       name: task.title,
+      description: task.description,
+      deadline: task.deadline,
       urgency: Math.round(urgency * 100) / 100, // Round to 2 decimals
       effort: task.estimatedEffort,
       priority: task.priorityScore || 1,
@@ -184,7 +188,12 @@ const TaskChart = ({ tasks }) => {
               name="Priority" 
             />
             <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', stroke: '#374151' }} />
-            <Scatter name="Tasks" data={chartData}>
+            <Scatter 
+              name="Tasks" 
+              data={chartData} 
+              onClick={(e) => { if (e && e.payload) setSelectedPoint(e.payload); }}
+              className="cursor-pointer"
+            >
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getPriorityColor(entry.priority)} />
               ))}
@@ -207,6 +216,56 @@ const TaskChart = ({ tasks }) => {
           <span>Low Priority (1-4)</span>
         </div>
       </div>
+
+      {/* Selected Task Details Box */}
+      {selectedPoint && (
+        <div className="mt-4 p-4 bg-[#1e293b]/40 border border-indigo-500/30 rounded-xl relative space-y-2 animate-fade-in text-left">
+          <button 
+            onClick={() => setSelectedPoint(null)} 
+            className="absolute top-3 right-3 text-gray-400 hover:text-white"
+            title="Clear Selection"
+            aria-label="Clear Selection"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">Selected Task Focus</span>
+            <h4 className="text-sm font-bold text-white pr-6">{selectedPoint.name}</h4>
+            {selectedPoint.description && (
+              <p className="text-xs text-gray-400 mt-1 leading-relaxed">{selectedPoint.description}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-2 border-t border-gray-800/40 text-xs text-gray-300">
+            <p>
+              <span className="text-gray-500">Category:</span> {selectedPoint.category}
+            </p>
+            <p>
+              <span className="text-gray-500">Effort:</span> {selectedPoint.effort}h
+            </p>
+            <p>
+              <span className="text-gray-500">Urgency:</span> {selectedPoint.urgency}/10
+            </p>
+            <p>
+              <span className="text-gray-500">AI Priority:</span> {selectedPoint.priority}/10
+            </p>
+          </div>
+
+          <div className="pt-2 text-xs text-indigo-300 flex flex-col gap-1">
+            <p className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+              <span>Due: {new Date(selectedPoint.deadline).toLocaleDateString()} at {new Date(selectedPoint.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </p>
+            {selectedPoint.isScheduledToday && (
+              <p className="flex items-center gap-1.5 text-pink-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-pink-500" />
+                <span>Scheduled Today: {selectedPoint.startTime}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

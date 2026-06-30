@@ -88,24 +88,65 @@ const generateText = async (userKey, systemInstruction, promptText) => {
 
 
 /**
- * Parse Natural Language task text into structured task fields
+ * Parse Natural Language task text into structured task fields or commands
  */
-const parseNLTask = async (text, userKey) => {
-  const systemInstruction = `You are a task parsing agent. Parse the user's natural language task and extract details: title, description, deadline, estimatedEffort (in hours), and category.
-If the estimated effort is not specified, auto-estimate it based on the task complexity (e.g., "write simple email" -> 0.5 hours, "prepare big exam" -> 5 hours).
-If the deadline is not specified, default to tomorrow at 17:00 (5 PM).
-Category must be one of: 'Work', 'Personal', 'Health', 'Finance', 'Lifestyle', 'Study', or 'Other'.
-Today's local time is: ${new Date().toISOString()}.
-Return ONLY a JSON object in this exact format:
-{
-  "title": "Clean, concise task title",
-  "description": "Any details or context about the task, empty string if none",
-  "deadline": "YYYY-MM-DDTHH:mm:ss.sssZ (ISO 8601 string)",
-  "estimatedEffort": 2,
-  "category": "Work"
-}`;
+const parseNLCommand = async (text, pendingTasks, userKey) => {
+  const pendingTasksData = (pendingTasks || []).map(t => ({
+    _id: t._id.toString(),
+    title: t.title,
+    description: t.description,
+    deadline: t.deadline,
+    estimatedEffort: t.estimatedEffort,
+    category: t.category
+  }));
 
-  const promptText = `Parse this task: "${text}"`;
+  const systemInstruction = `You are a task management command parser.
+You will receive:
+1. A natural language text input from the user (e.g. "Add a task to buy groceries tomorrow at 4 PM" or "Reschedule study exam to 6 PM").
+2. A list of the user's pending tasks.
+
+Analyze the input text:
+Decide whether the user is trying to:
+- CREATE a new task.
+- UPDATE/EDIT an existing task (e.g. rescheduling, changing title, changing effort).
+
+RULES FOR CREATE:
+- A specific due date and time are MANDATORY. The user MUST explicitly specify a date (like "tomorrow", "next monday", "July 4th") AND a time (like "4 PM", "16:00", "noon").
+- If the date or time is missing or ambiguous (e.g. "add task buy milk" with no date/time, or just "buy milk tomorrow" with no time), you MUST return:
+  { "type": "error", "message": "A due date and time are required to schedule this task. Please specify when it is due (e.g., 'tomorrow at 4 PM')." }
+- If all fields are present, extract:
+  {
+    "type": "create",
+    "data": {
+      "title": "Clean, concise task title",
+      "description": "Any details or context about the task, empty string if none",
+      "deadline": "ISO format date-time string (YYYY-MM-DDTHH:mm:ss.sssZ) relative to the current local time",
+      "estimatedEffort": number (hours, default to 1 if not specified),
+      "category": "Work" | "Personal" | "Health" | "Finance" | "Study" (default to "Work")
+    }
+  }
+
+RULES FOR UPDATE/EDIT:
+- If the user refers to an existing task (e.g., "reschedule study exam", "change deadline of dashboard to tomorrow at 5 PM", "change effort of math task to 2 hours"), match it to one of the pending tasks.
+- If you find a match, extract the changes and return:
+  {
+    "type": "update",
+    "taskId": "the _id of the matching task",
+    "data": {
+      "title": "...", // if changed
+      "deadline": "ISO format date-time string (YYYY-MM-DDTHH:mm:ss.sssZ) of the new deadline", // if changed
+      "estimatedEffort": number, // if changed
+      "category": "..." // if changed
+    }
+  }
+- If you can't find a matching task in the list, return:
+  { "type": "error", "message": "I could not find a pending task matching that description to update." }
+
+Return ONLY raw JSON matching these schemas. No markdown formatting.
+Today's local time is: ${new Date().toLocaleString()} (ISO: ${new Date().toISOString()}).
+Pending tasks list: ${JSON.stringify(pendingTasksData)}`;
+
+  const promptText = `Process command: "${text}"`;
   return await generateJSON(userKey, systemInstruction, promptText);
 };
 
@@ -213,7 +254,7 @@ Briefly summarize today's priorities based on the pending tasks, and comment on 
 };
 
 module.exports = {
-  parseNLTask,
+  parseNLCommand,
   prioritizeTasks,
   generateSchedule,
   generateNudge,

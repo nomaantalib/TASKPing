@@ -23,7 +23,8 @@ import {
   X,
   ChevronRight,
   Flame,
-  CheckSquare
+  CheckSquare,
+  Edit3
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -58,6 +59,17 @@ const Dashboard = () => {
     isRecurring: false
   });
   const [formSubmitting, setFormSubmitting] = useState(false);
+
+  // Editing state
+  const [editingTask, setEditingTask] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    deadline: '',
+    estimatedEffort: 1,
+    category: 'Work',
+    isRecurring: false
+  });
 
   // Load initial tasks
   const fetchTasks = async (query = '') => {
@@ -182,7 +194,52 @@ const Dashboard = () => {
     fetchTasks('');
   };
 
-  // Parse Natural Language Task
+  // Start manual task editing
+  const handleStartEdit = (task) => {
+    setEditingTask(task);
+    
+    // Format deadline from database ISO format (YYYY-MM-DDTHH:mm:ss...) to datetime-local format (YYYY-MM-DDTHH:mm)
+    let formattedDeadline = '';
+    if (task.deadline) {
+      const date = new Date(task.deadline);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      formattedDeadline = `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    setEditForm({
+      title: task.title || '',
+      description: task.description || '',
+      deadline: formattedDeadline,
+      estimatedEffort: task.estimatedEffort || 1,
+      category: task.category || 'Work',
+      isRecurring: task.isRecurring || false
+    });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingTask) return;
+    setFormSubmitting(true);
+    try {
+      const res = await api.put(`/tasks/${editingTask._id}`, editForm);
+      if (res.data.success) {
+        setTasks(prev => prev.map(t => t._id === editingTask._id ? res.data.task : t));
+        setEditingTask(null);
+      }
+    } catch (err) {
+      console.error('Error updating task:', err);
+      const errMsg = err.response?.data?.message || 'Failed to update task.';
+      alert(errMsg);
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  // Parse Natural Language Task / Command
   const handleNLSubmit = async (e) => {
     e.preventDefault();
     if (!nlText.trim()) return;
@@ -191,12 +248,20 @@ const Dashboard = () => {
     try {
       const res = await api.post('/tasks/nl-add', { text: nlText });
       if (res.data.success) {
-        setTasks(prev => [res.data.task, ...prev]);
+        if (res.data.type === 'update') {
+          // Perform UI replacement on update
+          setTasks(prev => prev.map(t => t._id === res.data.task._id ? res.data.task : t));
+          alert(res.data.message || 'Task updated successfully via AI!');
+        } else {
+          // Add newly created task
+          setTasks(prev => [res.data.task, ...prev]);
+        }
         setNlText('');
       }
     } catch (err) {
       console.error('Failed to parse NL input:', err);
-      alert('AI parsing failed. Please format the request or enter the task manually.');
+      const errMsg = err.response?.data?.message || 'AI parsing failed. Please specify a due date and time, or enter the task manually.';
+      alert(errMsg);
     } finally {
       setParsingNL(false);
     }
@@ -498,14 +563,25 @@ const Dashboard = () => {
                         )}
                       </div>
 
-                      {/* Delete */}
-                      <button
-                        onClick={() => handleDeleteTask(task._id)}
-                        className="p-1.5 text-gray-650 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Delete Task"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleStartEdit(task)}
+                          className="p-1.5 text-gray-650 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg"
+                          title="Edit Task"
+                          aria-label="Edit Task"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTask(task._id)}
+                          className="p-1.5 text-gray-650 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                          title="Delete Task"
+                          aria-label="Delete Task"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
 
                     </div>
                   );
@@ -626,6 +702,121 @@ const Dashboard = () => {
                   className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/20 transition-colors"
                 >
                   {formSubmitting ? 'Creating...' : 'Create Task'}
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingTask(null)} />
+          
+          <div className="bg-[#111827]/90 border border-gray-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl relative z-10 space-y-4 backdrop-blur-md">
+            
+            <div className="flex justify-between items-center pb-3 border-b border-gray-800">
+              <h3 className="text-lg font-bold text-white">Edit Task</h3>
+              <button 
+                onClick={() => setEditingTask(null)} 
+                className="text-gray-400 hover:text-white"
+                title="Close Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wider">Task Title</label>
+                <input
+                  type="text"
+                  placeholder="Review quarter metrics"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full bg-[#1e293b]/40 border border-gray-800 hover:border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wider">Description</label>
+                <textarea
+                  placeholder="Enter context details..."
+                  value={editForm.description}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-[#1e293b]/40 border border-gray-800 hover:border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none h-20 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wider">Deadline</label>
+                  <input
+                    type="datetime-local"
+                    value={editForm.deadline}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, deadline: e.target.value }))}
+                    className="w-full bg-[#1e293b]/40 border border-gray-800 hover:border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wider">Estimated Effort (hours)</label>
+                  <input
+                    type="number"
+                    min="0.5"
+                    step="0.5"
+                    value={editForm.estimatedEffort}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, estimatedEffort: parseFloat(e.target.value) || 1 }))}
+                    className="w-full bg-[#1e293b]/40 border border-gray-800 hover:border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wider">Category</label>
+                  <select
+                    value={editForm.category}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full bg-[#1e293b] border border-gray-800 hover:border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  >
+                    {['Work', 'Personal', 'Health', 'Finance', 'Lifestyle', 'Study', 'Other'].map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="flex items-center gap-2 pt-5">
+                  <input
+                    type="checkbox"
+                    id="editIsRecurring"
+                    checked={editForm.isRecurring}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, isRecurring: e.target.checked }))}
+                    className="w-4.5 h-4.5 bg-slate-900 border-gray-850 rounded text-indigo-600 focus:ring-indigo-500/20"
+                  />
+                  <label htmlFor="editIsRecurring" className="text-xs font-semibold text-gray-300 cursor-pointer">Recurring Task / Habit</label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingTask(null)}
+                  className="px-5 py-2.5 bg-gray-850 hover:bg-gray-800 text-gray-400 rounded-xl text-sm font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={formSubmitting}
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/20 transition-colors"
+                >
+                  {formSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
 

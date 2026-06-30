@@ -61,18 +61,52 @@ exports.createTaskNL = async (req, res, next) => {
     }
 
     const userKey = req.user.geminiApiKey;
-    const parsedFields = await gemini.parseNLTask(text, userKey);
+    const pendingTasks = await Task.find({ userId: req.user._id, status: 'pending' });
+    const command = await gemini.parseNLCommand(text, pendingTasks, userKey);
 
+    if (command.type === 'error') {
+      return res.status(400).json({ success: false, message: command.message });
+    }
+
+    if (command.type === 'update') {
+      const task = await Task.findOne({ _id: command.taskId, userId: req.user._id });
+      if (!task) {
+        return res.status(404).json({ success: false, message: 'Task to update not found' });
+      }
+
+      const fields = command.data;
+      if (fields.title !== undefined) task.title = fields.title;
+      if (fields.description !== undefined) task.description = fields.description;
+      if (fields.deadline !== undefined) task.deadline = new Date(fields.deadline);
+      if (fields.estimatedEffort !== undefined) task.estimatedEffort = fields.estimatedEffort;
+      if (fields.category !== undefined) task.category = fields.category;
+
+      const updatedTask = await task.save();
+      return res.json({ 
+        success: true, 
+        type: 'update', 
+        message: `Task "${updatedTask.title}" updated successfully via AI.`, 
+        task: updatedTask 
+      });
+    }
+
+    // CREATE command
+    const fields = command.data;
     const task = await Task.create({
       userId: req.user._id,
-      title: parsedFields.title,
-      description: parsedFields.description,
-      deadline: new Date(parsedFields.deadline),
-      estimatedEffort: parsedFields.estimatedEffort || 1,
-      category: parsedFields.category || 'Work'
+      title: fields.title,
+      description: fields.description,
+      deadline: new Date(fields.deadline),
+      estimatedEffort: fields.estimatedEffort || 1,
+      category: fields.category || 'Work'
     });
 
-    res.status(201).json({ success: true, task });
+    res.status(201).json({ 
+      success: true, 
+      type: 'create', 
+      message: `Task "${task.title}" created successfully.`, 
+      task 
+    });
   } catch (error) {
     next(error);
   }
