@@ -7,6 +7,9 @@
    <a href="https://taskping-104u.onrender.com" target="_blank">
     <img src="https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=render" alt="Live Demo"/>
   </a>
+   <a href="https://taskping-104u.onrender.com/TASKping_Presentation.html" target="_blank">
+    <img src="https://img.shields.io/badge/Presentation-Slides-orange?style=for-the-badge&logo=googleslides" alt="Presentation Slides"/>
+  </a>
    <a href="https://nodejs.org/en">
     <img src="https://img.shields.io/badge/Stack-MERN-blue?style=for-the-badge&logo=mongodb" alt="MERN Stack"/>
   </a>
@@ -21,6 +24,14 @@
 **TASKping** is a premium MERN-stack task scheduler and proactive reminder application built as a flagship submission for the **Vibe2Ship Hackathon**. It shifts the burden of task planning from the user to a server-side Gemini intelligence loop. 
 
 Unlike traditional static checklists, TASKping parses natural language (or speech dictation) to schedule or edit tasks, checks date/time parameters dynamically, ranks task urgency, maps daily timelines to peak focus energy windows, and visually plots tasks on an interactive Urgency vs. Effort grid.
+
+---
+
+## 📊 Project Presentation Slides
+TASKping includes an interactive slide deck outlining the engineering architecture, MERN + Gemini stack, and key features. You can open and view it locally or via the live deployed link:
+
+* 🌐 **Hosted Slide Deck**: [Open TASKping Interactive Presentation Slides](https://taskping-104u.onrender.com/TASKping_Presentation.html)
+* 📁 **Local Source File**: [TASKping_Presentation.html](file:///c:/Users/mohdn/OneDrive/Desktop/TASLping/TASKping_Presentation.html)
 
 ---
 
